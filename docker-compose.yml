@@ -1,0 +1,60 @@
+version: '3.7'
+
+services:
+  kratos:
+    image: oryd/kratos:v1.0.0
+    ports:
+      - '4433:4433' # public
+      - '4434:4434' # admin
+    depends_on:
+      - kratos-migrate
+      - mailslurper
+    restart: unless-stopped
+    environment:
+      - SERVE_PUBLIC_BASE_URL=http://127.0.0.1:4433/
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
+    command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
+    volumes:
+      - kratos-sqlite:/var/lib/sqlite
+      - .docker/kratos:/etc/config/kratos
+    networks:
+      - intranet
+
+  kratos-migrate:
+    image: oryd/kratos:v1.0.0
+    environment:
+      - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc
+    volumes:
+      - kratos-sqlite:/var/lib/sqlite
+      - .docker/kratos:/etc/config/kratos
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    restart: on-failure
+    networks:
+      - intranet
+
+  kratos-selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:v1.0.0
+    ports:
+      - '4455:4455'
+    environment:
+      - PORT=4455
+      - SECURITY_MODE=
+      - KRATOS_PUBLIC_URL=http://kratos:4433/
+      - KRATOS_BROWSER_URL=http://127.0.0.1:4433/
+    networks:
+      - intranet
+    restart: on-failure
+
+  mailslurper:
+    image: oryd/mailslurper:latest-smtps
+    ports:
+      - '4436:4436'
+      - '4437:4437'
+    networks:
+      - intranet
+
+networks:
+  intranet:
+
+volumes:
+  kratos-sqlite:
