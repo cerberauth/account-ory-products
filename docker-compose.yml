@@ -16,7 +16,7 @@ services:
     command: serve -c /etc/config/kratos/kratos.yml --dev --watch-courier
     volumes:
       - kratos-sqlite:/var/lib/sqlite
-      - .docker/kratos:/etc/config/kratos
+      - .docker/kratos:/etc/config/kratos:ro
     networks:
       - intranet
 
@@ -26,7 +26,7 @@ services:
       - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true&mode=rwc
     volumes:
       - kratos-sqlite:/var/lib/sqlite
-      - .docker/kratos:/etc/config/kratos
+      - .docker/kratos:/etc/config/kratos:ro
     command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
     restart: on-failure
     networks:
