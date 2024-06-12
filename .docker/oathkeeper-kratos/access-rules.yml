@@ -1,0 +1,56 @@
+-
+  id: "ory:kratos:public"
+  upstream:
+    preserve_host: true
+    url: "http://kratos:4433"
+    strip_path: /.ory/kratos/public
+  match:
+    url: "http://auth.example.localhost/.ory/kratos/public/<**>"
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+  authenticators:
+    -
+      handler: noop
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: "ory:kratos-selfservice-ui-node:anonymous"
+  upstream:
+    preserve_host: true
+    url: "http://kratos-selfservice-ui-node:4435"
+  match:
+    url: "http://auth.example.localhost/<{registration,welcome,recovery,verification,login,consent,error,health/{alive,ready},**.css,**.js,**.png,**.svg,**.woff*}>"
+    methods:
+      - GET
+      - POST
+  authenticators:
+    - handler: anonymous
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: noop
+
+- id: "ory:kratos-selfservice-ui-node:protected"
+  upstream:
+    preserve_host: true
+    url: "http://kratos-selfservice-ui-node:4435"
+  match:
+    url: "http://auth.example.localhost/<{sessions,settings}>"
+    methods:
+      - GET
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: id_token
+  errors:
+    - handler: redirect
+      config:
+        to: http://auth.example.localhost/login

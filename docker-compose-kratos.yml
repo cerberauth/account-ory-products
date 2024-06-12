@@ -1,0 +1,96 @@
+services:
+  kratos:
+    image: oryd/kratos:v1.2
+    depends_on:
+      - kratos-postgresd
+      - kratos-migrate
+      - kratos-selfservice-ui-node
+    restart: unless-stopped
+    environment:
+      - DSN=postgres://kratos:secret@kratos-postgresd:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+    env_file:
+      - .env.production
+      - .env
+    command: serve -c /etc/config/kratos/kratos.yml --watch-courier
+    volumes:
+      - .docker/kratos:/etc/config/kratos:ro
+    networks:
+      - intranet
+
+  kratos-migrate:
+    image: oryd/kratos:v1.2
+    depends_on:
+      - kratos-postgresd
+    environment:
+      - DSN=postgres://kratos:secret@kratos-postgresd:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
+    env_file:
+      - .env.production
+      - .env
+    volumes:
+      - .docker/kratos:/etc/config/kratos:ro
+    command: -c /etc/config/kratos/kratos.yml migrate sql -e --yes
+    restart: on-failure
+    networks:
+      - intranet
+
+  kratos-postgresd:
+    image: postgres:16
+    networks:
+      - intranet
+    restart: always
+    volumes:
+      - kratos_db_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=kratos
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=kratos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kratos-selfservice-ui-node:
+    image: oryd/kratos-selfservice-ui-node:v1.2.0
+    environment:
+      - PORT=4435
+      - SECURITY_MODE=jwks
+      - ORY_SDK_URL=http://kratos:4433
+      - KRATOS_PUBLIC_URL=http://kratos:4433
+      - KRATOS_ADMIN_URL=http://kratos:4434
+      - JWKS_URL=http://oathkeeper-kratos:4456/.well-known/jwks.json
+    env_file:
+      - .env.production
+      - .env
+    networks:
+      - intranet
+    restart: on-failure
+
+  oathkeeper-kratos:
+    image: oryd/oathkeeper:v0.40
+    depends_on:
+      - kratos
+      - kratos-selfservice-ui-node
+    networks:
+      - intranet
+      - traefiknet
+    command:
+      serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml"
+    restart: on-failure
+    volumes:
+      - .docker/oathkeeper-kratos:/etc/config/oathkeeper:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefiknet"
+      - "traefik.http.routers.auth-example.rule=Host(`auth.example.localhost`)"
+      - "traefik.http.routers.auth-example.service=auth-example"
+      - "traefik.http.services.auth-example.loadbalancer.server.port=4455"
+
+networks:
+  intranet:
+  traefiknet:
+    name: traefiknet
+    external: true
+
+volumes:
+  kratos_db_data:
