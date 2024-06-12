@@ -9,13 +9,14 @@ services:
     environment:
       - DSN=postgres://kratos:secret@kratos-postgresd:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
     env_file:
-      - .env.production
       - .env
     command: serve -c /etc/config/kratos/kratos.yml --watch-courier
     volumes:
       - .docker/kratos:/etc/config/kratos:ro
     networks:
       - intranet
+      - hydranet
+      - kratosnet
 
   kratos-migrate:
     image: oryd/kratos:v1.2
@@ -24,7 +25,6 @@ services:
     environment:
       - DSN=postgres://kratos:secret@kratos-postgresd:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
     env_file:
-      - .env.production
       - .env
     volumes:
       - .docker/kratos:/etc/config/kratos:ro
@@ -58,12 +58,13 @@ services:
       - ORY_SDK_URL=http://kratos:4433
       - KRATOS_PUBLIC_URL=http://kratos:4433
       - KRATOS_ADMIN_URL=http://kratos:4434
+      - HYDRA_ADMIN_URL=http://hydra-admin:4445
       - JWKS_URL=http://oathkeeper-kratos:4456/.well-known/jwks.json
     env_file:
-      - .env.production
       - .env
     networks:
       - intranet
+      - hydranet
     restart: on-failure
 
   oathkeeper-kratos:
@@ -88,6 +89,11 @@ services:
 
 networks:
   intranet:
+  kratosnet:
+    name: kratosnet
+  hydranet:
+    name: hydranet
+    external: true
   traefiknet:
     name: traefiknet
     external: true

@@ -29,6 +29,7 @@ cd account-ory-products
 
 ```bash
 127.0.0.1 auth.example.localhost
+127.0.0.1 oauth.example.localhost
 ```
 
 3. Copy the `.env.example` file to `.env`:
@@ -50,4 +51,12 @@ openssl rand -base64 32
 docker-compose -f docker-compose.yml -f docker-compose-kratos.yml up -d
 ```
 
+If you want to start Hydra, you can use the following command:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose-hydra.yml -f docker-compose-kratos.yml up -d
+```
+
 4. Access the services: [http://auth.example.localhost/welcome](http://auth.example.localhost/welcome)
+
+For your new OpenID Connect Provider, you will have to create a new OAuth 2.0 client. You can do this by following the [Ory Hydra documentation](https://www.ory.sh/docs/hydra/guides/oauth2-clients).

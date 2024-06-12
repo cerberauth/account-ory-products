@@ -1,0 +1,90 @@
+version: '3.7'
+
+services:
+  hydra:
+    image: oryd/hydra:v2.2
+    command: serve public -c /etc/config/hydra/hydra.yml
+    volumes:
+      - .docker/hydra:/etc/config/hydra:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefiknet"
+      - "traefik.http.routers.oauth-example.rule=Host(`oauth.example.localhost`)"
+      - "traefik.http.routers.oauth-example.service=oauth-example"
+      - "traefik.http.services.oauth-example.loadbalancer.server.port=4444"
+    environment:
+      - DSN=postgres://hydra:secret@hydra-postgresd:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - hydra-migrate
+      - hydra-postgresd
+    networks:
+      - intranet
+      - traefiknet
+      - hydranet
+
+  hydra-admin:
+    image: oryd/hydra:v2.2
+    command: serve admin -c /etc/config/hydra/hydra.yml
+    volumes:
+      - .docker/hydra:/etc/config/hydra:ro
+    environment:
+      - DSN=postgres://hydra:secret@hydra-postgresd:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - hydra-migrate
+      - hydra-postgresd
+    networks:
+      - intranet
+      - hydranet
+      - kratosnet
+
+  hydra-migrate:
+    image: oryd/hydra:v2.2
+    depends_on:
+      - hydra-postgresd
+    environment:
+      - DSN=postgres://hydra:secret@hydra-postgresd:5432/hydra?sslmode=disable&max_conns=20&max_idle_conns=4
+    env_file:
+      - .env
+    command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
+    volumes:
+      - .docker/hydra:/etc/config/hydra:ro
+    restart: on-failure
+    networks:
+      - intranet
+
+  hydra-postgresd:
+    image: postgres:16
+    networks:
+      - intranet
+    restart: always
+    volumes:
+      - hdyra_db_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=hydra
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=hydra
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  intranet:
+  hydranet:
+    name: hydranet
+  kratosnet:
+    name: kratosnet
+    external: true
+  traefiknet:
+    name: traefiknet
+    external: true
+
+volumes:
+  hdyra_db_data:

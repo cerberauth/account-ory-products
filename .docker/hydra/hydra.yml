@@ -1,0 +1,42 @@
+serve:
+  cookies:
+    same_site_mode: Lax
+
+  public:
+    cors:
+      enabled: true
+
+urls:
+  self:
+    issuer: https://oauth.example.localhost
+  consent: https://auth.example.localhost/consent
+  login: https://auth.example.localhost/login
+  # registration: https://auth.example.localhost/registration
+  logout: https://auth.example.localhost/logout
+
+  identity_provider:
+    url: http://kratos:4434
+
+secrets:
+  system:
+    - youReallyNeedToChangeThis
+
+oauth2:
+  allowed_top_level_claims:
+    - preferred_username
+    - given_name
+    - family_name
+    - name
+    - email
+  mirror_top_level_claims: false
+
+oidc:
+  subject_identifiers:
+    supported_types:
+      - pairwise
+      - public
+    pairwise:
+      salt: youReallyNeedToChangeThis
+
+strategies:
+  access_token: opaque
