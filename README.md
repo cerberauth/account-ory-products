@@ -47,14 +47,23 @@ openssl rand -base64 32
 
 3. Start the services:
 
+First, create the network:
+
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose-kratos.yml up -d
+docker network create hydranet
+docker network create kratosnet
+```
+
+Then, you can start the services:
+
+```bash
+docker-compose -f docker-compose-kratos.yml -f docker-compose.yml up -d
 ```
 
 If you want to start Hydra, you can use the following command:
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose-hydra.yml -f docker-compose-kratos.yml up -d
+docker-compose -f docker-compose-hydra.yml -f docker-compose-kratos.yml -f docker-compose.yml up -d
 ```
 
 4. Access the services: [http://auth.example.localhost/welcome](http://auth.example.localhost/welcome)
